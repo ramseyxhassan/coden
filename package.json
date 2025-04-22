@@ -1,6 +1,6 @@
 {
     "name": "coden",
-    "displayName": "Copilot Suggestion Tracker",
+    "displayName": "Coden",
     "description": "Track and log GitHub Copilot code suggestions accepted by the user",
     "version": "0.1.0",
     "engines": {
@@ -17,11 +17,11 @@
       "commands": [
         {
           "command": "coden.enableTracking",
-          "title": "Enable Copilot Suggestion Tracking"
+          "title": "Enable Coden"
         },
         {
           "command": "coden.disableTracking",
-          "title": "Disable Copilot Suggestion Tracking"
+          "title": "Disable Coden"
         }
       ]
     },

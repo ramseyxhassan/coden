@@ -1,4 +1,4 @@
-# Coden - Copilot Suggestion Tracker
+# Coden
 
 A VS Code extension that tracks GitHub Copilot code suggestions accepted by users.
 
@@ -42,3 +42,10 @@ Suggestions are logged to `coden.json` in this format:
     "charCount": 57
   }
 ]
+```
+
+## Commands
+npm install
+npm npm install -g @vscode/vsce
+npm run compile
+vsce package
