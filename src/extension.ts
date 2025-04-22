@@ -157,7 +157,7 @@ export function activate(context: vscode.ExtensionContext) {
             
             // Then check for new AI suggestions
             for (const change of event.contentChanges) {
-                if (isProbablyTrackPilotSuggestion(change.text, doc.languageId)) {
+                if (isProbablyCodenSuggestion(change.text, doc.languageId)) {
                     incrementLanguageCount(doc.languageId);
                     
                     logSuggestion(doc, change, oldContent, newContent);
@@ -468,7 +468,7 @@ function showSuggestionStats(context: vscode.ExtensionContext) {
         const sortedFileEntries = Object.entries(fileStats).sort((a, b) => b[1].count - a[1].count);
         
         const panel = vscode.window.createWebviewPanel(
-            'TrackPilotStats',
+            'CodenStats',
             'Coden - Copilot Suggestion Stats',
             vscode.ViewColumn.One,
             { enableScripts: true }
@@ -826,7 +826,7 @@ function inferProbableModel(text: string, languageId: string, context?: string):
     return "GitHub Copilot (model uncertain)";
 }
 
-function isProbablyTrackPilotSuggestion(text: string, languageId: string): boolean {
+function isProbablyCodenSuggestion(text: string, languageId: string): boolean {
     // Skip single character or very short insertions
     if (text.length <= 3) {
         return false;
