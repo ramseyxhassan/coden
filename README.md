@@ -46,6 +46,6 @@ Suggestions are logged to `coden.json` in this format:
 
 ## Commands
 npm install
-npm npm install -g @vscode/vsce
+npm install @vscode/vsce
 npm run compile
-vsce package
+npx vsce package

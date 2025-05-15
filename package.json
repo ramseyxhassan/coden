@@ -4,36 +4,39 @@
     "description": "Track and log GitHub Copilot code suggestions accepted by the user",
     "version": "0.1.0",
     "engines": {
-      "vscode": "^1.60.0"
+        "vscode": "^1.60.0"
     },
     "categories": [
-      "Other"
+        "Other"
     ],
     "activationEvents": [
-      "onStartupFinished"
+        "onStartupFinished"
     ],
     "main": "./out/extension.js",
     "contributes": {
-      "commands": [
-        {
-          "command": "coden.enableTracking",
-          "title": "Enable Coden"
-        },
-        {
-          "command": "coden.disableTracking",
-          "title": "Disable Coden"
-        }
-      ]
+        "commands": [
+            {
+                "command": "coden.enableTracking",
+                "title": "Enable Coden"
+            },
+            {
+                "command": "coden.disableTracking",
+                "title": "Disable Coden"
+            }
+        ]
     },
     "scripts": {
-      "vscode:prepublish": "npm run compile",
-      "compile": "tsc -p ./",
-      "watch": "tsc -watch -p ./",
-      "pretest": "npm run compile"
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile"
     },
     "devDependencies": {
-      "@types/node": "^16.11.7",
-      "@types/vscode": "^1.60.0",
-      "typescript": "^4.5.5"
+        "@types/node": "^16.11.7",
+        "@types/vscode": "^1.60.0",
+        "typescript": "^4.5.5"
+    },
+    "dependencies": {
+        "@vscode/vsce": "^3.3.2"
     }
-  }
+}
