@@ -912,14 +912,14 @@ function combineTrackingResults(lineResults: any, semanticResults: any, snapshot
         snapshotResults.confidence);
         
     const weightedModification = 
-        (lineResults.modificationDetected * lineResults.confidence + 
-        semanticResults.modificationDetected * semanticResults.confidence + 
-        snapshotResults.modificationDetected * snapshotResults.confidence) / totalConfidence;
+        (Number(lineResults.modificationDetected) * lineResults.confidence + 
+        Number(semanticResults.modificationDetected) * semanticResults.confidence + 
+        Number(snapshotResults.modificationDetected) * snapshotResults.confidence) / totalConfidence;
         
     const weightedDeletion = 
-        (lineResults.deletionDetected * lineResults.confidence + 
-        semanticResults.deletionDetected * semanticResults.confidence + 
-        snapshotResults.deletionDetected * snapshotResults.confidence) / totalConfidence;
+        (Number(lineResults.deletionDetected) * lineResults.confidence + 
+        Number(semanticResults.deletionDetected) * semanticResults.confidence + 
+        Number(snapshotResults.deletionDetected) * snapshotResults.confidence) / totalConfidence;
     
     return {
         modificationDetected: weightedModification > 0.5,
@@ -994,16 +994,16 @@ function trackAICodeChanges(document: vscode.TextDocument, onSave = false) {
                 importResults.confidence);
                 
             const weightedModification = 
-                (lineResults.modificationDetected * lineResults.confidence + 
-                semanticResults.modificationDetected * semanticResults.confidence + 
-                snapshotResults.modificationDetected * snapshotResults.confidence +
-                importResults.modificationDetected * importResults.confidence) / totalConfidence;
+                (Number(lineResults.modificationDetected) * lineResults.confidence + 
+                Number(semanticResults.modificationDetected) * semanticResults.confidence + 
+                Number(snapshotResults.modificationDetected) * snapshotResults.confidence +
+                Number(importResults.modificationDetected) * importResults.confidence) / totalConfidence;
                 
             const weightedDeletion = 
-                (lineResults.deletionDetected * lineResults.confidence + 
-                semanticResults.deletionDetected * semanticResults.confidence + 
-                snapshotResults.deletionDetected * snapshotResults.confidence +
-                importResults.deletionDetected * importResults.confidence) / totalConfidence;
+                (Number(lineResults.deletionDetected) * lineResults.confidence + 
+                Number(semanticResults.deletionDetected) * semanticResults.confidence + 
+                Number(snapshotResults.deletionDetected) * snapshotResults.confidence +
+                Number(importResults.deletionDetected) * importResults.confidence) / totalConfidence;
                 
             results = {
                 modificationDetected: weightedModification > 0.5,
