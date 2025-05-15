@@ -2493,7 +2493,7 @@ function getStatsHtml(
         <div id="overview" class="tab-content active">
             <div class="two-columns">
                 <div class="card">
-                    <h3>Total Copilot Suggestions</h3>
+                    <h3>Total Accepted Copilot Suggestions</h3>
                     <div class="big-number">${totalSuggestions}</div>
                     <div class="stat-detail">Since tracking began</div>
                 </div>
