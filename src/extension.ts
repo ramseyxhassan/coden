@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import { generateCodeFingerprint, checkCodeExistence } from './codefingerprint';
+import { trackCodeChanges, trackAllCodeChanges, createTrackedRegion, convertToTrackedRegion, TrackedCodeRegion } from './codetracker';
 
 /**
  * Constants
@@ -24,6 +26,7 @@ interface AiRegion {
     timestamp: number;
     modified?: boolean;
     deleted?: boolean;
+    fingerprint?: any; // Store code fingerprint for better tracking
 }
 
 interface DocumentStats {
@@ -77,6 +80,11 @@ interface LogEntry {
             timestamp: number;
         };
         trackingToolVersion: string;
+        codeAnalysis?: {
+            structuralElements: number;
+            identifiers: number;
+            semanticPatterns: number;
+        };
     };
 }
 
@@ -935,7 +943,7 @@ function combineTrackingResults(lineResults: any, semanticResults: any, snapshot
 }
 
 /**
- * Core tracking function that combines multiple approaches
+ * Core tracking function using robust fingerprinting system
  */
 function trackAICodeChanges(document: vscode.TextDocument, onSave = false) {
     const docUri = document.uri;
@@ -954,71 +962,25 @@ function trackAICodeChanges(document: vscode.TextDocument, onSave = false) {
         };
     }
     
-    // Track each region
+    // Track each region using our new robust system
     for (const region of regions) {
-        // Check if this is an import statement for special handling
-        const isImport = isImportStatement(region.text);
+        // Convert existing region to tracked region with fingerprint
+        const trackedRegion = convertToTrackedRegion(region, document.languageId);
         
-        // APPROACH 1: Line-by-line similarity check
-        const lineResults = trackLineByLineSimilarity(document, region);
+        // Track changes using the new unified approach
+        const trackingResult = trackCodeChanges(document, trackedRegion);
         
-        // APPROACH 2: Semantic anchor check
-        const semanticResults = trackSemanticAnchors(document, region);
-        
-        // APPROACH 3: Only if onSave=true, compare document snapshots
-        let snapshotResults = { confidence: 0, modificationDetected: false, deletionDetected: false, modType: "unknown" };
-        if (onSave && documentSnapshots.has(relPath)) {
-            snapshotResults = compareWithSnapshot(document, region, documentSnapshots.get(relPath)!);
-        }
-        
-        // For import statements, make a direct check for existence
-        let importResults = { confidence: 0, modificationDetected: false, deletionDetected: false, modType: "unknown" };
-        if (isImport) {
-            const importExists = importExistsInContent(region.text, currentContent);
-            importResults = {
-                confidence: 0.95, // Very high confidence for direct import checking
-                modificationDetected: false,
-                deletionDetected: !importExists,
-                modType: "import_check"
-            };
-        }
-        
-        // Combine results with weighted confidence
-        let results;
-        if (isImport) {
-            // For imports, give high weight to the specialized import check
-            const totalConfidence = 
-                (lineResults.confidence + 
-                semanticResults.confidence + 
-                snapshotResults.confidence + 
-                importResults.confidence);
-                
-            const weightedModification = 
-                (Number(lineResults.modificationDetected) * lineResults.confidence + 
-                Number(semanticResults.modificationDetected) * semanticResults.confidence + 
-                Number(snapshotResults.modificationDetected) * snapshotResults.confidence +
-                Number(importResults.modificationDetected) * importResults.confidence) / totalConfidence;
-                
-            const weightedDeletion = 
-                (Number(lineResults.deletionDetected) * lineResults.confidence + 
-                Number(semanticResults.deletionDetected) * semanticResults.confidence + 
-                Number(snapshotResults.deletionDetected) * snapshotResults.confidence +
-                Number(importResults.deletionDetected) * importResults.confidence) / totalConfidence;
-                
-            results = {
-                modificationDetected: weightedModification > 0.5,
-                deletionDetected: weightedDeletion > 0.7, // Higher threshold for import deletions
-                confidence: totalConfidence / 4,
-                modType: snapshotResults.modType || importResults.modType || "unknown",
-                modifications: [
-                    ...lineResults.modifications,
-                    ...semanticResults.modifications
-                ]
-            };
-        } else {
-            // Use normal combined results for non-imports
-            results = combineTrackingResults(lineResults, semanticResults, snapshotResults);
-        }
+        // Format results to be compatible with existing code
+        const results = {
+            modificationDetected: trackingResult.modified,
+            deletionDetected: !trackingResult.exists,
+            confidence: trackingResult.confidence,
+            modType: trackingResult.changeType,
+            modifications: trackingResult.details?.structuralMatches?.notFound.map((el: any) => ({
+                original: el.pattern,
+                current: 'modified or removed'
+            })) || []
+        };
         
         // Mark the region as modified in our tracking
         if (results.modificationDetected && !region.modified) {
@@ -1049,9 +1011,6 @@ function trackAICodeChanges(document: vscode.TextDocument, onSave = false) {
     
     // Save the modification data
     saveModificationData(modificationData);
-    
-    // For extra validation, run final validation to catch any false deletions
-    performFinalValidation(modificationData);
     
     // Update document stats to reflect changes
     updateDocumentStats(document);
@@ -1649,6 +1608,9 @@ function logSuggestion(
     const lineCount = change.text.split('\n').length;
     const estimatedTokens = Math.ceil(change.text.length / 4);
     
+    // Generate a fingerprint for this code
+    const fingerprint = generateCodeFingerprint(change.text, doc.languageId);
+    
     const logEntry: LogEntry = {
         timestamp: insertTime.toISOString(),
         id: suggestionId,
@@ -1675,7 +1637,12 @@ function logSuggestion(
                 date: insertTime.toLocaleDateString(),
                 timestamp: insertTime.getTime()
             },
-            trackingToolVersion: EXTENSION_VERSION
+            trackingToolVersion: EXTENSION_VERSION,
+            codeAnalysis: {
+                structuralElements: fingerprint.structuralElements.length,
+                identifiers: fingerprint.identifiers.length,
+                semanticPatterns: fingerprint.semanticPatterns.length
+            }
         }
     };
     
@@ -1685,7 +1652,21 @@ function logSuggestion(
         aiGeneratedRegions.set(relPath, []);
     }
     
-    // Add this region to our tracking
+    // Create a tracked region with fingerprint
+    const range = new vscode.Range(
+        change.range.start, 
+        new vscode.Position(change.range.start.line + lineCount - 1, change.range.end.character)
+    );
+    
+    const trackedRegion = createTrackedRegion(
+        suggestionId,
+        doc,
+        range,
+        change.text,
+        insertTime.getTime()
+    );
+    
+    // Add this region to our tracking (convert to simple object for compatibility)
     aiGeneratedRegions.get(relPath)?.push({
         id: suggestionId,
         startLine: change.range.start.line,
@@ -1693,7 +1674,9 @@ function logSuggestion(
         startChar: change.range.start.character,
         endChar: change.range.end.character,
         text: change.text,
-        timestamp: insertTime.getTime()
+        timestamp: insertTime.getTime(),
+        // Store fingerprint for better tracking
+        fingerprint: trackedRegion.fingerprint
     });
     
     // Update document statistics
