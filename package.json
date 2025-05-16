@@ -3,6 +3,10 @@
     "displayName": "Coden",
     "description": "Track and log GitHub Copilot code suggestions accepted by the user",
     "version": "0.1.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ramseyxhassan/coden.git"
+    },
     "engines": {
       "vscode": "^1.60.0"
     },
